@@ -6,7 +6,10 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour{
     [SerializeField] private Rigidbody rb;
     [SerializeField] private float speed = 1;
-    [SerializeField] private float turnSpeed = 360;
+    [SerializeField] private float turnSpeed = 1000;
+    [SerializeField] Camera camera;
+    [SerializeField] private Vector3 offset = Vector3.zero;
+
     private Vector3 input;
 
     private void Update(){
@@ -29,7 +32,9 @@ public class PlayerController : MonoBehaviour{
     }
 
     private void Move(){
-        rb.MovePosition(transform.position + (transform.forward * input.normalized.magnitude * speed * 0.25f * Time.deltaTime));
+        Vector3 position = transform.position + (transform.forward * input.normalized.magnitude * speed * 0.25f * Time.deltaTime);
+        rb.MovePosition(position);
+        camera.transform.SetPositionAndRotation(transform.position + offset , camera.transform.rotation);
     }
 }
 
