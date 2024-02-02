@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -18,11 +19,13 @@ public class PlayerController : MonoBehaviour
     private Vector2 GetInput()
     {
         Vector2 input = Vector2.zero;
-        input.x = -Input.GetAxis("Horizontal");
-        input.y = Input.GetAxis("Vertical");
+        //Azért getAxisRaw kell getAxis helyett, mert a getaxis simítja a bemenetet, ami elrontja a túllövés megakadályozó mûködését
+        input.x = -Input.GetAxisRaw("Horizontal");
+        input.y = Input.GetAxisRaw("Vertical");
+
         return input;
     }
-    private float AngleConverter(float angle) //-180 180
+    private float AngleConverter(float angle) //-180 180 -> 0 360
     {
         if(angle < 0)
         {
@@ -30,27 +33,62 @@ public class PlayerController : MonoBehaviour
         }
         return angle;
     }
-    private float GetRotationSign(Vector2 input)
+
+    private float GetDesiredRotation(Vector2 input)
     {
-        float angle = AngleConverter(Vector2.SignedAngle(Vector2.one, input));
-        float characterRotationY =rigidbody.transform.rotation.eulerAngles.y;
-        float diff =  angle - characterRotationY ;
-        float rotationSign = (angle - characterRotationY) / Mathf.Abs(angle - characterRotationY);
-        
-        if(diff > 180 && angle > characterRotationY)
+        return AngleConverter(Vector2.SignedAngle(Vector2.one, input));
+    }
+    private float GetRotationSign(Vector2 input, float characterRotationY)
+    {
+
+        float desiredRotation = GetDesiredRotation(input);
+        float diff =  desiredRotation - characterRotationY ;
+        if(diff == 0)
         {
-            rotationSign *=-1;
+            return 0;
         }
-        Debug.Log(angle + " " + characterRotationY + " " + diff + " "+rotationSign);
+
+        float rotationSign = (diff) / Mathf.Abs(diff);
+
+        if(Mathf.Abs(diff) > 180)
+        {
+            rotationSign *= -1;
+        }
         return rotationSign;
     }
-    
+
+    private bool DetectOvershoot(float currentRotation, float desiredRotation, float rotationToAdd)
+    {
+        if(currentRotation < desiredRotation && currentRotation + rotationToAdd > desiredRotation)
+        {
+            return true;
+        }
+
+        if(currentRotation > desiredRotation && currentRotation + rotationToAdd < desiredRotation)
+        {
+            return true;
+        }
+
+        return false;
+    }
     private void Update()
     {
-       Vector2 input= GetInput();
+        Vector2 input= GetInput();
         if (input.magnitude != 0)
         {
-            rigidbody.transform.rotation=(Quaternion.Euler(0, rigidbody.transform.rotation.eulerAngles.y + GetRotationSign(input) *angularVelocity * Time.deltaTime, 0));
+            float currentRotationY = rigidbody.transform.rotation.eulerAngles.y;
+            float desiredRotationY = GetDesiredRotation(input);
+            float rotationToAdd = GetRotationSign(input, currentRotationY) * angularVelocity * Time.deltaTime;
+
+            float finalRotationY = currentRotationY + rotationToAdd;
+
+            //megnézzük, hogy túllõne-e a célon, ha igen, akkor csak beállítjuk a célra, ez megakadálylozza a rezgést
+            if(DetectOvershoot(currentRotationY, desiredRotationY, rotationToAdd))
+            {
+                finalRotationY = desiredRotationY;
+            }
+
+            rigidbody.transform.rotation = Quaternion.Euler(0, finalRotationY, 0);
         }
 
     }
