@@ -85,11 +85,16 @@ public class PlayerController : MonoBehaviour
             //megnézzük, hogy túllõne-e a célon, ha igen, akkor csak beállítjuk a célra, ez megakadálylozza a rezgést
             if(DetectOvershoot(currentRotationY, desiredRotationY, rotationToAdd))
             {
-                finalRotationY = desiredRotationY;
+                finalRotationY = desiredRotationY; 
             }
 
             rigidbody.transform.rotation = Quaternion.Euler(0, finalRotationY, 0);
+            currentRotationY = rigidbody.transform.rotation.eulerAngles.y;
+            Vector3 direction = new Vector3(Mathf.Cos(currentRotationY * Mathf.Deg2Rad + Mathf.PI/2), 0, Mathf.Sin(currentRotationY * Mathf.Deg2Rad - Mathf.PI/2));
+            Debug.Log(direction.ToString());
+            rigidbody.MovePosition(transform.position  + Time.deltaTime * velocity * direction * -1);
         }
+
 
     }
 
